@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-deployment
+  namespace: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow-deployment
+  template:
+    metadata:
+      annotations:
+        iam.amazonaws.com/role: datalake-dev-stg
+      labels:
+        app: mlflow-deployment
+    spec:
+      containers:
+      - name: mlflow-deployment
+        image: dmitryb/mlflow:1.20.0-arm
+        imagePullPolicy: Always
+        env:
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: http://minio-service.minio:8081
+        - name: MLFLOW_S3_IGNORE_TLS
+          value: "true"
+        - name: AWS_ACCESS_KEY_ID
+          value: minio123
+        - name: MINIO_SECRET_KEY
+          value: minio123
+        - name: AWS_ACCESS_KEY_ID
+          value: minio123
+        - name: AWS_SECRET_ACCESS_KEY
+          value: minio123
+        args:
+        - --host=0.0.0.0
+        - --port=5000
+        - --backend-store-uri=postgresql://mlflow_user:mlflow_pwd@mlflow-postgres-service:5432/mlflow_db
+        - --default-artifact-root=s3://mlflow
+        - --workers=4
+        ports:
+        - name: http
+          containerPort: 5000
+          protocol: TCP
+        resources:
+          requests:
+            memory: "0.3Gi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-service
+  namespace: mlflow
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app: mlflow-deployment
+---
+# apiVersion: networking.k8s.io/v1beta1 # for k3s < v1.19
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mlflow-service
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+  namespace: mlflow
+spec:
+  rules:
+  - host: mlflow-service.mlflow
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mlflow-service
+            port:
+              number: 5000

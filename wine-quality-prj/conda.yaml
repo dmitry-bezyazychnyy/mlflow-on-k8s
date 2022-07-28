@@ -1,0 +1,11 @@
+name: wine-quality-env
+channels:
+  - defaults
+dependencies:
+  - numpy
+  - pandas
+  - scikit-learn
+  - pip
+  - pip:
+    - mlflow
+    - boto3
