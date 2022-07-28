@@ -1,3 +1,7 @@
+docker-build-prj:
+	docker build -t dmitryb/wine-quality:base -f ./Dockerfiles/Dockerfile.project .
+	docker push dmitryb/wine-quality:base
+
 docker-build-mlflow:
 	docker build -t dmitryb/mlflow:1.20.0-arm -f ./Dockerfiles/Dockerfile.mlflow .
 	docker push dmitryb/mlflow:1.20.0-arm

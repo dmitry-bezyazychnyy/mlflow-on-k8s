@@ -108,7 +108,6 @@ Use the following command to run it with mlflow:
 
 ```bash
 mlflow run ./wine-quality-prj \
-    --env-manager local \
     -e main \
     --experiment-name Default \
     --run-name run-1 \
@@ -152,3 +151,58 @@ aws --endpoint-url http://minio-service.minio:8081 \
 ```
 
 Where `0/` is a path for storing all runs + artiacts for experiment with id = 0 (Default)
+
+
+## Running jobs on k8s 
+
+We used to run a training job locally in a conda environment and publish metrics and artifacts (model) to mlflow. What if we want to do training on k8s too? There are many reasons to do this - more resources on a cluster (multiple GPU), can run multiple runs (training jobs) concurrently, good isolation (jobs are running inside containers), etc.
+To do this, we need a few things: a docker image to use as a base, and a slight update to the Mlproject.
+
+First, let's create a base docker image by running:
+
+`make docker-build-prj`
+
+This command builds a new image `dmitryb/wine-quality:base` with required dependencies and push to dockerhub (can use custom container registry).
+
+Second, lets update the following lines in our MLproject:
+
+```yaml
+# use conda env
+# conda_env: conda.yaml
+# or
+# use docker
+docker_env: 
+  image: dmitryb/wine-quality:base
+```
+
+Essentially, this means that we want to use the Docker image (which we just created) instead of the conda env.
+
+Now, lets start the training job (with two more params `--backend` and `--backend-config`)
+
+```bash
+mlflow run ./wine-quality-prj \
+    --backend kubernetes --backend-config wine-quality-prj/k8s_cfg.json \
+    -e main \
+    --experiment-name Default \
+    --run-name run-1 \
+    -P alpha=1.0
+```
+
+You will see something similar to:
+
+```txt
+2022/07/28 18:58:56 INFO mlflow.projects.docker: === Building docker image dmitryb/wine-quality:a5db207 ===
+2022/07/28 18:58:57 INFO mlflow.projects.kubernetes: === Pushing docker image dmitryb/wine-quality:a5db207 ===
+2022/07/28 18:59:05 INFO mlflow.projects.utils: === Created directory /var/folders/6w/zxd0f8js0_b__bk2b3x_24nc0000gp/T/tmpjp571h7k for downloading remote URIs passed to arguments of type 'path' ===
+2022/07/28 18:59:05 INFO mlflow.projects.kubernetes: === Creating Job wine-quality-2022-07-28-18-59-05-832261 ===
+2022/07/28 18:59:05 INFO mlflow.projects.kubernetes: Job started.
+2022/07/28 18:59:15 INFO mlflow.projects.kubernetes: None
+2022/07/28 18:59:15 INFO mlflow.projects: === Run (ID '7ea0b034da6a445786446ac4088eeff6') succeeded ===
+```
+
+This command does several things:
+1. It creates a new image tagged a5db207 (current commit ID) using the base image.
+2. push it to registry (docker hub in this example)
+3. start k8s job using configuration and template we provided
+
+If you go to mlflow UI, you should be able to see new run with all artifacts.

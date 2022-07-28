@@ -1,0 +1,5 @@
+{
+    "kube-context": "k3d-k3s-default",
+    "repository-uri": "dmitryb/wine-quality",
+    "kube-job-template-path": "wine-quality-prj/k8s_job_template.yaml"
+}

@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "wine-quality-prj"
+  namespace: default
+spec:
+  ttlSecondsAfterFinished: 100
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: "main"
+        image: "dmitryb/wine-quality:base"
+        imagePullPolicy: Always
+        command: [""]
+        resources:
+          limits:
+            memory: 300Mi
+          requests:
+            memory: 300Mi
+        env:
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: http://minio-service.minio:8081
+        - name: MLFLOW_S3_IGNORE_TLS
+          value: "true"
+        - name: AWS_ACCESS_KEY_ID
+          value: minio123
+        - name: MINIO_SECRET_KEY
+          value: minio123
+        - name: AWS_ACCESS_KEY_ID
+          value: minio123
+        - name: AWS_SECRET_ACCESS_KEY
+          value: minio123
+      restartPolicy: Never

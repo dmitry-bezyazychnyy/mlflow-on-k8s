@@ -1,6 +1,11 @@
 name: wine-quality
 
-conda_env: conda.yaml
+# use conda env
+# conda_env: conda.yaml
+# or
+# use docker
+docker_env: 
+  image: dmitryb/wine-quality:base
 
 entry_points:
   main:

@@ -1,0 +1,4 @@
+FROM python:3.9.13-slim
+
+# TODO: install from requirements
+RUN pip install numpy pandas scikit-learn mlflow boto3 tqdm
