@@ -108,6 +108,7 @@ Use the following command to run it with mlflow:
 
 ```bash
 mlflow run ./wine-quality-prj \
+    --env-manager local \
     -e main \
     --experiment-name Default \
     --run-name run-1 \
@@ -151,7 +152,6 @@ aws --endpoint-url http://minio-service.minio:8081 \
 ```
 
 Where `0/` is a path for storing all runs + artiacts for experiment with id = 0 (Default)
-
 
 ## Running jobs on k8s 
 
@@ -206,3 +206,80 @@ This command does several things:
 3. start k8s job using configuration and template we provided
 
 If you go to mlflow UI, you should be able to see new run with all artifacts.
+
+## Serve trained model
+
+### Run webserver locally
+
+```bash
+# use run id (get if rom ui or using cli)
+# Note: get correct run id from MLflow and replace <ace78a96b5af492cb27b0afeac7edd47>
+mlflow models serve --env-manager=local --model-uri s3://mlflow/0/ace78a96b5af492cb27b0afeac7edd47/artifacts/model
+# or use model name / version (or stage)
+mlflow models serve --env-manager=local --model-uri models:/ElasticNetModel_v1/Staging
+```
+
+Expected result:
+
+```bash
+1/Staging
+2022/07/29 16:37:45 INFO mlflow.models.cli: Selected backend for flavor 'python_function'
+2022/07/29 16:37:45 INFO mlflow.pyfunc.backend: === Running command 'exec gunicorn --timeout=60 -b 127.0.0.1:5000 -w 1 ${GUNICORN_CMD_ARGS} -- mlflow.pyfunc.scoring_server.wsgi:app'
+[2022-07-29 16:37:45 +0300] [66889] [INFO] Starting gunicorn 20.1.0
+[2022-07-29 16:37:45 +0300] [66889] [INFO] Listening at: http://127.0.0.1:5000 (66889)
+[2022-07-29 16:37:45 +0300] [66889] [INFO] Using worker: sync
+[2022-07-29 16:37:45 +0300] [66890] [INFO] Booting worker with pid: 66890
+^C[2022-07-29 16:37:47 +0300] [66889] [INFO] Handling signal: int
+[2022-07-29 16:37:47 +0300] [66890] [INFO] Worker exiting (pid: 66890)
+```
+
+### Call model service
+
+Using curl:
+
+```bash
+curl http://127.0.0.1:5000/invocations -H 'Content-Type: application/json' -d '{
+    "columns": ["fixed acidity", "volatile acidity", "citric acid", "residual sugar", "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density", "pH", "sulphates", "alcohol"],
+    "data": [
+        [6.30e+00, 3.00e-01, 3.40e-01, 1.60e+00, 4.90e-02, 1.40e+01, 1.32e+02, 9.94e-01, 3.30e+00, 4.90e-01, 9.50e+00],
+        [6.10e+00, 3.00e-01, 3.40e-01, 1.60e+00, 1.90e-02, 1.40e+01, 4.32e+02, 9.94e-01, 3.30e+00, 4.90e-01, 9.50e+00]
+    ]
+}'
+```
+
+### Build docker image
+
+Build docker image and run container (locally)
+
+```bash
+mlflow models build-docker \
+    -m "models:/ElasticNetModel_v1/Production" \
+    -n "dmitryb/wine-quality-prj"
+
+docker run -p 5000:8080 --rm "dmitryb/wine-quality-prj"
+```
+
+Use the same curl request to make sure the model works.
+
+### Load model as python function
+
+```python
+import mlflow.pyfunc
+import pandas as pd
+
+model_name = "ElasticNetModel_v1"
+stage = 'Production' # or model version (get from mlflow)
+model = mlflow.pyfunc.load_model(
+    model_uri=f"models:/{model_name}/{stage}"
+)
+
+request = pd.DataFrame(
+    data=[
+        [6.30e+00, 3.00e-01, 3.40e-01, 1.60e+00, 4.90e-02, 1.40e+01, 1.32e+02, 9.94e-01, 3.30e+00, 4.90e-01, 9.50e+00],
+        [6.10e+00, 3.00e-01, 3.40e-01, 1.60e+00, 1.90e-02, 1.40e+01, 4.32e+02, 9.94e-01, 3.30e+00, 4.90e-01, 9.50e+00]
+    ],
+    columns=["fixed acidity", "volatile acidity", "citric acid", "residual sugar", "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density", "pH", "sulphates", "alcohol"]
+)
+response = model.predict(request)
+print(response)
+```

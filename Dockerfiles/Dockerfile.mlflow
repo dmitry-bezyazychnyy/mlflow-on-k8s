@@ -2,13 +2,13 @@ FROM python:3.8.2-slim
 
 ENV LDFLAGS="-L/opt/homebrew/opt/libpq/lib"
 
-RUN apt-get update
-RUN apt-get install -y libpq-dev python-dev gcc
-RUN apt-get clean
+RUN apt-get update && \
+    apt-get install -y libpq-dev python-dev gcc build-essential && \
+    apt-get clean
 
 RUN pip install psycopg2 && \
     pip install boto3 && \
-    pip install mlflow[extras]==1.20.0
+    pip install mlflow[extras]==1.27.0
 
 # If this call came from a _pb2.py file, your generated code is out of date and must be regenerated with protoc >= 3.19.0.
 # If you cannot immediately regenerate your protos, some other possible workarounds are:

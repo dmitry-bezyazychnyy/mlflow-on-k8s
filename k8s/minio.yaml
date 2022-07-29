@@ -1,14 +1,17 @@
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: minio-deployment
   namespace: minio
+  labels:
+    app: minio-deployment
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: minio-deployment
+  serviceName: "minio-deployment"
+  replicas: 1
   template:
     metadata:
       labels:
@@ -37,7 +40,7 @@ spec:
             cpu: "100m"
         volumeMounts:
         - name: minio-pvc
-          mountPath: /data          
+          mountPath: /data       
   volumeClaimTemplates:
   - metadata:
       name: minio-pvc

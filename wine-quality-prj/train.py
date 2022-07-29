@@ -11,6 +11,7 @@ import pandas as pd
 from sklearn.linear_model import ElasticNet
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+from mlflow.models.signature import infer_signature
 
 
 def eval_metrics(actual, pred):
@@ -67,11 +68,14 @@ if __name__ == "__main__":
         mlflow.log_metric("r2", r2)
         mlflow.log_metric("mae", mae)
 
+        # infere model signature
+        signature = infer_signature(train_x, lr.predict(train_x))
+
         # log model (as artifacts)
-        mlflow.sklearn.log_model(lr, "model")
+        mlflow.sklearn.log_model(lr, "model", signature=signature)
 
         # register in model registry
-        model_uri = "runs:/{}/sklearn-model".format(run.info.run_id)
+        model_uri = "runs:/{}/model".format(run.info.run_id)
         mv = mlflow.register_model(model_uri, "ElasticNetModel_v1")
         logger.info(f"model: {mv.name}, version: {mv.version}")
         

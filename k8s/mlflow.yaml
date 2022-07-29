@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: mlflow-deployment
-        image: dmitryb/mlflow:1.20.0-arm
+        image: dmitryb/mlflow:1.27.0-arm
         imagePullPolicy: Always
         env:
         - name: MLFLOW_S3_ENDPOINT_URL
