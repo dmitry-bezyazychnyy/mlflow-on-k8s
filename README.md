@@ -78,11 +78,12 @@ Now we are going to create some names for easy access to mlflow and minio servic
 By now, you should be able to open minio and mlflow in your browser:
 
 `open http://mlflow-service.mlflow:8081`
+
 `open http://minio-service.minio:8081` (usr/pwd: minio123/minio123)
 
 ## Create a bucket for storing mlflow results
 
-Mlflow has been deployed and configured to use the `/mlflow` bucket as the default location for storing artifacts. We will need to create this bucket manually using the minio UI.
+Mlflow has been deployed and configured to use the `s3://mlflow` bucket as the default location for storing artifacts. We will need to create this bucket manually using the minio UI.
 
 ## Set environments
 
